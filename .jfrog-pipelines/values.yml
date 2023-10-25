@@ -1,4 +1,4 @@
 myRepo:
-  gitProvider: myGithub
+  gitProvider: marcelr_github
   artifactory: myArtifactory
-  path: jfrog/jfrog-pipelines-npm-sample
+  path: marcelr-jfrog/jfrog-pipelines-npm-sample
