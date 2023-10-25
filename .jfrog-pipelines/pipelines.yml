@@ -1,62 +1,51 @@
+#template: true   # required for local templates
+valuesFilePath: ./values.yml
+
+resources:
+  - name: npm_repo_jfp_example
+    type: GitRepo
+    configuration:
+      # SCM integration where the repository is located
+      gitProvider: {{ .Values.myRepo.gitProvider }}
+      # Repository path, including org name/repo name
+      path: {{ .Values.myRepo.path }}
+      branches:
+        # Specifies which branches will trigger dependent steps
+        include: master
+
+  - name: npm_buildinfo_jfp_example
+    type: BuildInfo
+    configuration:
+      sourceArtifactory: {{ .Values.myRepo.artifactory }}
+      
+  - name: cron_trigger_npm
+    type: CronTrigger
+    configuration:
+      interval: '0 3 * * *'       
+
 pipelines:
-  - name: github_sample
+  - name: Npm_Quickstart
     steps:
-      - name: first
-        type: Bash
-        execution:
-          onStart:
-            - >-
-              echo "onStart can be used to do some setup or initialization of your
-              dependencies to prepare for the execution."
-          onExecute:
-            - >-
-              echo "onExecute is the main section where you would issue your
-              build/test commands"
-            - jfrog --version
-          onSuccess:
-            - >-
-              echo "onSuccess executes if the onStart or onExecute sections
-              completed without errors"
-          onFailure:
-            - >-
-              echo "onFailure executes if either onStart or onExecute end in failure
-              or error."
-          onComplete:
-            - echo "onComplete executes after onSuccess or onFailure"
-      - name: variable_selection
-        type: Bash
+      - name: npm_build_step
+        type: NpmBuild
         configuration:
-          inputSteps:
-            - name: first
-          environmentVariables:
-            forceFail:
-              default: 'false'
-              description: set to 'true' to force the step to fail.
-              values:
-                - 'false'
-                - 'true'
-        execution:
-          onStart:
-            - 'if [ ${forceFail} == "true" ]; then exit 1; fi'
-          onExecute:
-            - echo "This step will succeed"
-          onFailure:
-            - echo "step has failed."
-          onSuccess:
-            - echo "step has succeeded."
-          onComplete:
-            - >-
-              echo "onComplete executes regardless of success or failure. forceFail
-              is ${forceFail}"
-      - name: add_run_variable
-        type: Bash
+          repositoryName: quickstarts-npm-virtual      # required, npm repository name on artifacctory
+          sourceLocation: .      # required, location of package.json file
+          integrations:
+            - name:  {{ .Values.myRepo.artifactory }}  # required
+          inputResources:
+            - name: npm_repo_jfp_example         # required
+            - name: cron_trigger_npm
+
+      - name: npm_publish_step
+        type: NpmPublish
         configuration:
+          # for payloadType npm:
+          repositoryName: quickstarts-npm-virtual        # required, npm repository name on artifactory
+          autoPublishBuildInfo: true       # optional
+          integrations:
+            - name: {{ .Values.myRepo.artifactory }}      # required
           inputSteps:
-            - name: first
-        execution:
-          onStart:
-            - echo "This step will save a value to a run variable."
-          onExecute:
-            - >-
-              add_run_variables step_info="runNumber $run_number, step_name
-              $step_name, pipeline_name $pipeline_name"
+            - name: npm_build_step                # required
+          outputResources:
+            - name: npm_buildinfo_jfp_example                 # optional
