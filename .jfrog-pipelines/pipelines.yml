@@ -1,4 +1,4 @@
-name: intro_hello_world
+name: github_sample
 steps:
   - name: first
     type: Bash
